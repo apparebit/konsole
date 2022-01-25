@@ -1,0 +1,61 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "konsole"
+requires-python = ">=3.7"
+authors = [{name = "Robert Grimm", email = "apparebit@gmail.com"}]
+readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = [
+    "Environment :: Console",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Utilities",
+]
+
+dynamic = ["description", "version"]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "flit",
+    "mypy",
+]
+
+[project.urls]
+Home = "https://github.com/apparebit/konsole"
+
+[tool.mypy]
+files = ["konsole/*.py"]
+warn_unused_configs = true
+disallow_any_unimported = true
+# disallow_any_expr = true
+# disallow_any_decorated = true
+# disallow_any_explicit = true
+# disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+# warn_return_any = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[tool.black]
+target-version = ['py39']
+skip-string-normalization = true
