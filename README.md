@@ -1,6 +1,6 @@
 # konsole: readable, pleasing console output
 
-`konsole` is a simple logger built on top of Python's `logging` framework that
+konsole is a simple logger built on top of Python's `logging` framework that
 prints to standard error and, if the underlying terminal is amenable, does so
 with the judicious use of bold and light type as well as a dash of color. This
 package's interface stands on its own, no experience or direct interaction with
