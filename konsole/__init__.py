@@ -17,13 +17,15 @@ import textwrap
 from typing import Any, ContextManager, Optional, TextIO
 
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
+    # Configuration
     'init',
     'set_color',
     'set_level',
     'logger',
+    # Logging
     'CRITICAL',
     'ERROR',
     'WARNING',
@@ -34,10 +36,14 @@ __all__ = [
     'warning',
     'info',
     'debug',
-    'logger',
-    'SGR',
-    'ConsoleFormatter',
+    'log',
 ]
+
+
+class _NoSuchValueType:
+    pass
+_NoSuchValue = _NoSuchValueType()
+del _NoSuchValueType
 
 
 CRITICAL = logging.CRITICAL
@@ -92,8 +98,8 @@ class ConsoleFormatter(logging.Formatter):
         return style(text) if style and self.use_color else text
 
     def formatDetail(self, record: logging.LogRecord) -> str:
-        detail = getattr(record, "detail", None)
-        if detail is None:
+        detail = getattr(record, "detail", _NoSuchValue)
+        if detail is _NoSuchValue:
             return ""
 
         lines: list[str] = []
@@ -132,9 +138,13 @@ class ConsoleFormatter(logging.Formatter):
         return self.applyStyle("<exception>", text)
 
 
+# --------------------------------------------------------------------------------------
+
+
 _formatter = ConsoleFormatter()
 _handler = logging.StreamHandler()
 _handler.setFormatter(_formatter)
+_main_logger = logging.getLogger("__main__")
 _initialized = False
 
 
@@ -146,7 +156,7 @@ def init(*, level: int = INFO, use_color: Optional[bool] = None) -> None:
     _initialized = True
 
     if use_color is not None:
-        _formatter.use_color = bool(use_color)
+        _formatter.use_color = use_color
 
     logging.basicConfig(level=level, handlers=[_handler])
     logging.captureWarnings(True)
@@ -154,45 +164,80 @@ def init(*, level: int = INFO, use_color: Optional[bool] = None) -> None:
 
 def set_color(use_color: bool) -> None:
     """Forcibly enable or disable colorful output."""
-    init(use_color=use_color)
-    _formatter.use_color = use_color
+    if not _initialized:
+        init(use_color=use_color)
+    else:
+        _formatter.use_color = use_color
 
 
 def set_level(level: int) -> None:
-    """Set the minimum log level for emitting output."""
-    init(level=level)
-    logging.getLogger().setLevel(level)
+    """Set the minimum level for logging messages."""
+    if not _initialized:
+        init(level=level)
+    else:
+        logging.getLogger().setLevel(level)
+
+
+# --------------------------------------------------------------------------------------
 
 
 def logger() -> logging.Logger:
-    """Get the "`__main__`" logger for the application."""
-    init()
-    return logging.getLogger("__main__")
+    """Get the `__main__` application logger."""
+    if not _initialized:
+        init()
+    return _main_logger
 
 
-def critical(*args: Any, **kwargs: Any) -> None:
-    """Emit a log message at fatal level."""
-    logger().critical(*args, **kwargs)
+def critical(msg: str, /, *args: object, **kwargs: object) -> None:
+    """Log the given critical message."""
+    log(CRITICAL, msg, *args, **kwargs)
 
 
-def error(*args: Any, **kwargs: Any) -> None:
-    """Emit a log message at error level."""
-    logger().error(*args, **kwargs)
+def error(msg: str, /, *args: object, **kwargs: object) -> None:
+    """Log the given error message."""
+    log(ERROR, msg, *args, **kwargs)
 
 
-def warning(*args: Any, **kwargs: Any) -> None:
-    """Emit a log message at warning level."""
-    logger().warning(*args, **kwargs)
+def warning(msg: str, /, *args: object, **kwargs: object) -> None:
+    """Log the given warning message."""
+    log(WARNING, msg, *args, **kwargs)
 
 
-def info(*args: Any, **kwargs: Any) -> None:
-    """Emit a log message at info level."""
-    logger().info(*args, **kwargs)
+def info(msg: str, /, *args: object, **kwargs: object) -> None:
+    """Log the given message."""
+    log(INFO, msg, *args, **kwargs)
 
 
-def debug(*args: Any, **kwargs: Any) -> None:
-    """Emit a log message at debug level."""
-    logger().debug(*args, **kwargs)
+def debug(msg: str, /, *args: object, **kwargs: object) -> None:
+    """Log the given debug message."""
+    log(DEBUG, msg, *args, **kwargs)
+
+
+def log(level: int, msg: str, /, *args: object, **kwargs: Any) -> None:
+    """Log the given message at the given level."""
+    if not _initialized:
+        init()
+
+    if "detail" in kwargs:
+        _prepare_detail(kwargs)
+
+    _main_logger.log(level, msg, *args, **kwargs)
+
+
+def _prepare_detail(kwargs: dict[str, object]) -> None:
+    detail = kwargs.pop("detail")
+    if "extra" not in kwargs:
+        kwargs.update(extra={"detail": detail})
+        return
+
+    extra = kwargs["extra"]
+    if not isinstance(extra, dict):
+        raise ValueError(f'"extra" must be a dictionary but is "{extra}"!')
+
+    extra.update(detail=detail)
+
+
+# --------------------------------------------------------------------------------------
 
 
 def redirect(stream: TextIO) -> ContextManager[TextIO]:
@@ -203,17 +248,18 @@ def redirect(stream: TextIO) -> ContextManager[TextIO]:
     context manager's `__enter__()` method returns the given stream, thus making
     it available in the `with` statement body as well.
     """
-    init()
+    if not _initialized:
+        init()
 
     import contextlib
 
     @contextlib.contextmanager
     def redirect() -> Iterator[TextIO]:
-        old_stream = _handler.setStream(stream)
+        old_stream = _handler.stream
+        _handler.setStream(stream)
         try:
             yield stream
         finally:
-            if old_stream:
-                _handler.setStream(old_stream)
+            _handler.setStream(old_stream)
 
     return redirect()
