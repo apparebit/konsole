@@ -1,20 +1,93 @@
 # konsole: readable, pleasing console output
 
-konsole is a simple logger built on top of Python's `logging` framework that
-prints to standard error and, if the underlying terminal is amenable, does so
-with the judicious use of bold and light type as well as a dash of color. This
-package's interface stands on its own, no experience or direct interaction with
-`logging` required. At the same time, this package plays equally well with other
-loggers, just leave ~~konsole~~ 🙄 console output to it.
+> When you are writing a Python command line tool and your head is on fire
+> because of overly rich frameworks that just don’t click.
 
-To use konsole, your application should invoke the `init()` function as soon as
-possible during startup, preferably before executing other application code. If
-it instead invokes any of the other functions in konsole's public API —
-`set_color()`, `set_level()`, `logger()`, `critical()`, `error()`, `warning()`,
-`info()`, `debug()`, or `redirect()` — konsole implicitly invokes `init()` to
-ensure proper initialization of its logging handler and formatter. Keep in mind
-that delaying konsole's initialization that way also increases the likelihood of
-some component writing to the log without the benefits of konsole's formatting.
+[konsole](https://github.com/apparebit/konsole) is a simple logger built on top
+of Python's `logging` framework that prints to standard error and, if the
+underlying terminal is amenable, does so with the judicious use of bold and
+light type as well as a dash of color. This package's interface stands on its
+own, no experience or direct interaction with `logging` required. At the same
+time, this package plays equally well with other loggers, just leave ~~konsole~~
+🙄 console output to it.
+
+
+## Using konsole
+
+The following subsections describe konsole's public interface, covering
+configuration, logging of messages, and output redirection.
+
+
+### Configuring konsole
+
+  * Initialize konsole with the given minimum level for printing messages and
+    flag for forcing colors on or off. The default of `None` for the latter
+    makes color dependent on whether standard error is a TTY.
+
+    ```python
+    def init(*, level: int = INFO, use_color: Optional[bool] = None) -> None: ...
+    ```
+
+    An application should call `init()` as soon as possible during startup. If
+    it doesn't, konsole implicitly executes this function the first time any
+    other function is invoked.
+
+  * Force color on or off.
+
+    ```python
+    def set_color(use_color: bool) -> None: ...
+    ```
+
+  * Set the minimum level for printing messages.
+
+    ```python
+    def set_level(level: int) -> None: ...
+    ```
+
+
+### Logging Messages
+
+  * Get the `__main__` application logger. konsole uses it for writing messages.
+
+    ```python
+    def logger() -> logging.Logger
+    ```
+
+  * Log a message at the given level.
+
+    ```python
+    def critical(msg: str, *args: object, **kwargs: object) -> None: ...
+    def error(msg: str, *args: object, **kwargs: object) -> None: ...
+    def warning(msg: str, *args: object, **kwargs: object) -> None: ...
+    def info(msg: str, *args: object, **kwargs: object) -> None: ...
+    def debug(msg: str, *args: object, **kwargs: object) -> None: ...
+    def log(level: int, msg: str, *args: object, **kwargs: object) -> None: ...
+    ```
+
+    The message string is the first and only mandatory argument. If the message
+    string contains `%` format specifiers, the necessary values must follow as
+    positional arguments.
+
+    Valid keyword arguments include those supported by Python's logging
+    framework, notably `exc_info` for including an exception's stacktrace. They
+    also include `detail` for supplemental data. konsole prints the mapping,
+    sequence, or scalar value on separate, indented lines after the message but
+    before an exception's stacktrace.
+### Redirecting Output
+
+In theory, the `redirect_stderr` function in Python's `contextlib` would suffice
+for redirecting the output of any Python class or module that writes to standard
+error. In practice, that function is next to useless, since it naively assumes
+that the class or module in question accesses standard error as `sys.stderr` on
+each and every use. Hence:
+
+  * Redirect konsole's output to the given stream. Unlike `redirect_stderr`,
+    this function works.
+
+    ```python
+    def redirect(stream: TextIO) -> ContextManager[TextIO]: ...
+    ```
+
 
 ---
 
