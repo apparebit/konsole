@@ -14,8 +14,18 @@ time, this package plays equally well with other loggers, just leave ~~konsole~~
 
 ## Using konsole
 
-The following subsections describe konsole's public interface, covering
-configuration, logging of messages, and output redirection.
+As usual, you first need to install konsole, preferably into a virtual
+environment:
+
+```shell
+(venv) project % python3 -m pip install konsole
+```
+
+Once installed, add a call to `konsole.init()` at the very beginning of your
+application's main function. The `init()` function, just like the rest of
+konsole's public API, is described below. Both documentation and code include
+type annotations, which have been validated with
+[mypy](https://mypy.readthedocs.io/en/stable/).
 
 
 ### Configuring konsole
@@ -73,6 +83,8 @@ configuration, logging of messages, and output redirection.
     also include `detail` for supplemental data. konsole prints the mapping,
     sequence, or scalar value on separate, indented lines after the message but
     before an exception's stacktrace.
+
+
 ### Redirecting Output
 
 In theory, the `redirect_stderr` function in Python's `contextlib` would suffice
