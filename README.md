@@ -104,6 +104,6 @@ each and every use. Hence:
 ---
 
 © 2022 [Robert Grimm](https://apparebit.com).
-Released under [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) license.
+Subject to [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) license.
 On [GitHub](https://github.com/apparebit/konsole).
 On [PyPI](https://pypi.org/project/konsole/).
