@@ -34,7 +34,7 @@ dev = [
 Home = "https://github.com/apparebit/konsole"
 
 [tool.mypy]
-files = ["konsole/*.py"]
+files = ["konsole/*.py", "test.py"]
 warn_unused_configs = true
 disallow_any_unimported = true
 # disallow_any_expr = true
