@@ -273,10 +273,10 @@ def log(level: int, msg: object, *args: object, **kwargs: Any) -> None:
 def redirect(stream: TextIO) -> ContextManager[TextIO]:
     """
     Redirect konsole's output to the given stream. This function provides a
-    functional alternative to `redirect_stderr` from Python's `contextlib`,
-    which does not work for capturing the output of a `StreamHandler`. The
-    context manager's `__enter__()` method returns the given stream, thus making
-    it available in the `with` statement body as well.
+    working alternative to `redirect_stderr` from Python's `contextlib`, which
+    does not work for capturing the output of a `StreamHandler`. The context
+    manager's `__enter__()` method returns the given stream, thus making it
+    available in the `with` statement body as well.
     """
     import contextlib
 
