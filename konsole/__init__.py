@@ -1,23 +1,25 @@
 """
 konsole: readable, pleasing console output
 
-konsole is a simple logger built on top of Python's `logging` framework that
-prints to standard error and, if the underlying terminal is amenable, does so
-with the judicious use of bold and light type as well as a dash of color. This
-package's interface stands on its own, no experience or direct interaction with
-`logging` required. At the same time, this package plays equally well with other
-loggers, just leave ~~konsole~~ 🙄 console output to it.
+[konsole](https://github.com/apparebit/konsole) is a simple logger built on top
+of Python's `logging` framework that prints to standard error and, if the
+underlying terminal is amenable to it, does so with the judicious use of bold
+and light type as well as a dash of color. This package's interface stands on
+its own, no experience or direct interaction with `logging` required. At the
+same time, this package plays equally well with other loggers, just leave
+console output to it.
 """
 
-from collections.abc import Iterator
-from dataclasses import dataclass
 import logging
 import sys
-import textwrap
-from typing import Any, ContextManager, Optional, TextIO
+
+from typing import Any, cast, ContextManager, Optional, TextIO, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     # Configuration
@@ -42,6 +44,8 @@ __all__ = [
 
 class _NoSuchValueType:
     pass
+
+
 _NoSuchValue = _NoSuchValueType()
 del _NoSuchValueType
 
@@ -53,27 +57,34 @@ INFO = logging.INFO
 DEBUG = logging.DEBUG
 
 
-@dataclass(frozen=True)
+# --------------------------------------------------------------------------------------
+
+
 class SGR:
     """
-    The Select Graphic Rendition for enabling and disabling a style but without
-    the prefix of escape character and opening square bracket '[' as well as the
-    suffix of small letter 'm'.
+    The Select Graphic Rendition (SGR) for enabling and disabling a style but
+    without the prefix of escape character and opening square bracket '[' as
+    well as the suffix of small letter 'm'. SGR are not expected to nest.
     """
 
-    on: str
-    off: str
+    def __init__(self, on: str, off: str) -> None:
+        self._on = on
+        self._off = off
 
     def __call__(self, text: str) -> str:
-        return f"\x1b[{self.on}m{text}\x1b[{self.off}m"
+        return f"\x1b[{self._on}m{text}\x1b[{self._off}m"
 
 
-class ConsoleFormatter(logging.Formatter):
+class KonsoleFormatter(logging.Formatter):
     """
     A log formatter targeting the console for human consumption. If supported by
     the terminal, this class uses indentation, bold and light type, as well as a
     dash of color to make log output look less busy and easier to read.
     """
+
+    DETAIL = "<detail>"
+    EXCEPTION = "<exception>"
+    MESSAGE = "<message>"
 
     PUNCTUATION = ("!", ",", ".", ":", ";", "?", '"', "'")
 
@@ -83,10 +94,10 @@ class ConsoleFormatter(logging.Formatter):
         "ERROR": SGR("1;31", "0;39"),
         "WARNING": SGR("1;38;5;208", "0;39"),
         "INFO": SGR("1", "0"),
-        # Styles for other log entry components:
-        "<message>": SGR("1", "0"),
-        "<detail>": SGR("90", "0"),
-        "<exception>": SGR("90", "0"),
+        # Styles for other components of log entries:
+        MESSAGE: SGR("1", "0"),
+        DETAIL: SGR("90", "0"),
+        EXCEPTION: SGR("90", "0"),
     }
 
     def __init__(self, use_color: Optional[bool] = None) -> None:
@@ -113,7 +124,7 @@ class ConsoleFormatter(logging.Formatter):
         else:
             lines.append(f"\n    {detail}")
 
-        return self.applyStyle("<detail>", "".join(lines))
+        return self.applyStyle(self.DETAIL, "".join(lines))
 
     def formatMessage(self, record: logging.LogRecord) -> str:
         levelname = self.applyStyle(record.levelname, f"[{record.levelname}]")
@@ -125,7 +136,7 @@ class ConsoleFormatter(logging.Formatter):
             message += ":" if detail or record.exc_info else "."
         if levelname[0] == "\x1b":
             # Only highlight message if level is highlighted too. Debug is just plain.
-            message = self.applyStyle("<message>", message)
+            message = self.applyStyle(self.MESSAGE, message)
         if detail and record.exc_info:
             # Both detail and exception are formatted the same, need separating line.
             detail += "\n\n"
@@ -134,94 +145,50 @@ class ConsoleFormatter(logging.Formatter):
 
     def formatException(self, exc_info: Any) -> str:
         text = super().formatException(exc_info)
-        text = textwrap.indent(text, "    ")
-        return self.applyStyle("<exception>", text)
+        text = "\n    ".join(text.split("\n"))
+        return self.applyStyle(self.EXCEPTION, text)
 
 
 # --------------------------------------------------------------------------------------
 
 
-_formatter = ConsoleFormatter()
-_handler = logging.StreamHandler()
-_handler.setFormatter(_formatter)
-_main_logger = logging.getLogger("__main__")
-_initialized = False
+# Instead of subclassing logging.Logger directly, we create the konsole logger
+# as a subclass of the currently configured logger class. That way, konsole
+# composes with other extensions to the logging framework. Since mypy doesn't
+# handle this intermingling of types and values, we also define a more static
+# view — while type checking.
+
+if TYPE_CHECKING:
+    Logger = logging.Logger
+else:
+    Logger = logging.getLoggerClass()
 
 
-def init(*, level: int = INFO, use_color: Optional[bool] = None) -> None:
-    """Initialize the logging system. Call this function first thing upon startup."""
-    global _initialized
-    if _initialized:
-        return
-    _initialized = True
+class KonsoleLogger(Logger):
+    # Unfortunately, the various logging methods of logging.Logger directly call
+    # into Logger._log() if isEnabledFor(LEVEL) and _log() does *not* accept
+    # arbitrary keyword arguments. Hence adding support for the detail keyword
+    # is a bit more involved than it should be.
 
-    if use_color is not None:
-        _formatter.use_color = use_color
+    def critical(self, msg: object, *args: object, **kwargs: object) -> None:
+        self.log(CRITICAL, msg, *args, **kwargs)
 
-    logging.basicConfig(level=level, handlers=[_handler])
-    logging.captureWarnings(True)
+    def error(self, msg: object, *args: object, **kwargs: object) -> None:
+        self.log(ERROR, msg, *args, **kwargs)
 
+    def warning(self, msg: object, *args: object, **kwargs: object) -> None:
+        self.log(WARNING, msg, *args, **kwargs)
 
-def set_color(use_color: bool) -> None:
-    """Forcibly enable or disable colorful output."""
-    if not _initialized:
-        init(use_color=use_color)
-    else:
-        _formatter.use_color = use_color
+    def info(self, msg: object, *args: object, **kwargs: object) -> None:
+        self.log(INFO, msg, *args, **kwargs)
 
+    def debug(self, msg: object, *args: object, **kwargs: object) -> None:
+        self.log(DEBUG, msg, *args, **kwargs)
 
-def set_level(level: int) -> None:
-    """Set the minimum level for logging messages."""
-    if not _initialized:
-        init(level=level)
-    else:
-        logging.getLogger().setLevel(level)
-
-
-# --------------------------------------------------------------------------------------
-
-
-def logger() -> logging.Logger:
-    """Get the `__main__` application logger."""
-    if not _initialized:
-        init()
-    return _main_logger
-
-
-def critical(msg: str, /, *args: object, **kwargs: object) -> None:
-    """Log the given critical message."""
-    log(CRITICAL, msg, *args, **kwargs)
-
-
-def error(msg: str, /, *args: object, **kwargs: object) -> None:
-    """Log the given error message."""
-    log(ERROR, msg, *args, **kwargs)
-
-
-def warning(msg: str, /, *args: object, **kwargs: object) -> None:
-    """Log the given warning message."""
-    log(WARNING, msg, *args, **kwargs)
-
-
-def info(msg: str, /, *args: object, **kwargs: object) -> None:
-    """Log the given message."""
-    log(INFO, msg, *args, **kwargs)
-
-
-def debug(msg: str, /, *args: object, **kwargs: object) -> None:
-    """Log the given debug message."""
-    log(DEBUG, msg, *args, **kwargs)
-
-
-def log(level: int, msg: str, /, *args: object, **kwargs: Any) -> None:
-    """Log the given message at the given level."""
-    if not _initialized:
-        init()
-
-    if "detail" in kwargs:
-        _prepare_detail(kwargs)
-
-    _main_logger.log(level, msg, *args, **kwargs)
+    def log(self, level: int, msg: object, *args: object, **kwargs: Any) -> None:
+        if "detail" in kwargs:
+            _prepare_detail(kwargs)
+        super().log(level, msg, *args, **kwargs)
 
 
 def _prepare_detail(kwargs: dict[str, object]) -> None:
@@ -240,6 +207,69 @@ def _prepare_detail(kwargs: dict[str, object]) -> None:
 # --------------------------------------------------------------------------------------
 
 
+# Initialize konsole when this module is first imported by selectively changing
+# the configuration of Python's logging module.
+
+_formatter = KonsoleFormatter()
+_handler = logging.StreamHandler()
+_handler.setFormatter(_formatter)
+logging.setLoggerClass(KonsoleLogger)
+_main_logger = cast(KonsoleLogger, logging.getLogger("__main__"))
+
+logging.captureWarnings(True)
+logging.getLogger().addHandler(_handler)
+logging.getLogger().setLevel(INFO)
+
+
+def config(*, level: Optional[int] = None, use_color: Optional[bool] = None) -> None:
+    """Optionally set the logging level and forcibly enable or disable color."""
+    if level is not None:
+        logging.getLogger().setLevel(level)
+    if use_color is not None:
+        _formatter.use_color = use_color
+
+
+# --------------------------------------------------------------------------------------
+
+
+def logger() -> logging.Logger:
+    """Get the `__main__` application logger."""
+    return _main_logger
+
+
+def critical(msg: object, *args: object, **kwargs: object) -> None:
+    """Log the given critical message."""
+    _main_logger.log(CRITICAL, msg, *args, **kwargs)
+
+
+def error(msg: object, *args: object, **kwargs: Any) -> None:
+    """Log the given error message."""
+    _main_logger.log(ERROR, msg, *args, **kwargs)
+
+
+def warning(msg: object, *args: object, **kwargs: Any) -> None:
+    """Log the given warning message."""
+    _main_logger.log(WARNING, msg, *args, **kwargs)
+
+
+def info(msg: object, *args: object, **kwargs: Any) -> None:
+    """Log the given message."""
+    _main_logger.log(INFO, msg, *args, **kwargs)
+
+
+def debug(msg: object, *args: object, **kwargs: Any) -> None:
+    """Log the given debug message."""
+    _main_logger.log(DEBUG, msg, *args, **kwargs)
+
+
+def log(level: int, msg: object, *args: object, **kwargs: Any) -> None:
+    """Log the given message at the given level."""
+    _main_logger.log(level, msg, *args, **kwargs)
+
+
+# --------------------------------------------------------------------------------------
+
+
 def redirect(stream: TextIO) -> ContextManager[TextIO]:
     """
     Redirect konsole's output to the given stream. This function provides a
@@ -248,13 +278,10 @@ def redirect(stream: TextIO) -> ContextManager[TextIO]:
     context manager's `__enter__()` method returns the given stream, thus making
     it available in the `with` statement body as well.
     """
-    if not _initialized:
-        init()
-
     import contextlib
 
     @contextlib.contextmanager
-    def redirect() -> Iterator[TextIO]:
+    def redirect() -> 'Iterator[TextIO]':
         old_stream = _handler.stream
         _handler.setStream(stream)
         try:
