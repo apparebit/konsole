@@ -1,6 +1,18 @@
 # konsole changelog
 
-### v0.2.0 (xx Jan 2022):
+### v0.3.0 (29 Jan 2022):
+
+  * Initialize konsole eagerly on first import. Replace `init()` with `config()`.
+  * Instead of replacing logging configuration with `basicConfig()`, augment
+    current configuration by adding handler to root logger and by replacing
+    logger class with subclass.
+  * Remove runtime dependencies on the standard library's `collections.abc`,
+    `dataclasses`, and `textwrap` packages to reduce import latency and memory
+    overhead.
+  * Completely refactor test script, improve coverage.
+  * Update documentation accordingly.
+
+### v0.2.0 (26 Jan 2022):
 
   * Surface `detail` keyword argument for logging functions.
   * Document konsole's public API.
