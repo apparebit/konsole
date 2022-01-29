@@ -5,54 +5,55 @@
 
 [konsole](https://github.com/apparebit/konsole) is a simple logger built on top
 of Python's `logging` framework that prints to standard error and, if the
-underlying terminal is amenable, does so with the judicious use of bold and
-light type as well as a dash of color. This package's interface stands on its
-own, no experience or direct interaction with `logging` required. At the same
-time, this package plays equally well with other loggers, just leave ~~konsole~~
-🙄 console output to it.
+underlying terminal is amenable to it, does so with the judicious use of bold
+and light type as well as a dash of color. This package's interface stands on
+its own, no experience or direct interaction with `logging` required. At the
+same time, this package plays equally well with other loggers, just leave
+~~konsole~~ 🙄 console output to it.
 
 
 ## Using konsole
 
-As usual, you first need to install konsole, preferably into a virtual
-environment:
+In order to use konsole, you need to go through the usual motions of installing
 
 ```shell
 (venv) project % python3 -m pip install konsole
 ```
 
-Once installed, add a call to `konsole.init()` at the very beginning of your
-application's main function. The `init()` function, just like the rest of
-konsole's public API, is described below. Both documentation and code include
-type annotations, which have been validated with
+and then importing the package
+
+```python
+import konsole
+```
+
+konsole automatically integrates itself with Python’s logging system the first
+time the module is imported into an application. Notably, it registers a handler
+that prints messages to standard error with the root logger, replaces the
+current logger class with a subclass that supports the `detail` keyword
+argument, and enables the capture of Python warnings through the logging system.
+
+konsole's public API follows below. It includes one function each for updating
+configuration settings, for accessing the `__main__` application logger, and for
+redirecting the output. Another six functions print messages at different
+levels. The API is type-checked with
 [mypy](https://mypy.readthedocs.io/en/stable/).
 
 
 ### Configuring konsole
 
-  * Initialize konsole with the given minimum level for printing messages and
-    flag for forcing colors on or off. The default of `None` for the latter
-    makes color dependent on whether standard error is a TTY.
+  * Change the minimum level for printing message and/or the flag for forcing
+    colors on/off.
 
     ```python
-    def init(*, level: int = INFO, use_color: Optional[bool] = None) -> None: ...
+    def config(
+        *,
+        level: Optional[int] = None,
+        use_color: Optional[bool] = None,
+    ) -> None: ...
     ```
 
-    An application should call `init()` as soon as possible during startup. If
-    it doesn't, konsole implicitly executes this function the first time any
-    other function is invoked.
-
-  * Force color on or off.
-
-    ```python
-    def set_color(use_color: bool) -> None: ...
-    ```
-
-  * Set the minimum level for printing messages.
-
-    ```python
-    def set_level(level: int) -> None: ...
-    ```
+    konsole starts out with `INFO` as minimum level and uses color if
+    standard error is a TTY.
 
 
 ### Logging Messages
@@ -62,6 +63,9 @@ type annotations, which have been validated with
     ```python
     def logger() -> logging.Logger
     ```
+
+    The logger, like any other logger created after the initialization of
+    konsole, supports the `detail` keyword argument (see below).
 
   * Log a message at the given level.
 
@@ -83,6 +87,10 @@ type annotations, which have been validated with
     also include `detail` for supplemental data. konsole prints the mapping,
     sequence, or scalar value on separate, indented lines after the message but
     before an exception's stacktrace.
+
+    konsole defines ALL CAPS constants, e.g., `WARNING`, for the five levels
+    above. They have the same values as the corresponding constants in Python's
+    logging package.
 
 
 ### Redirecting Output
