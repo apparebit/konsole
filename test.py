@@ -36,9 +36,11 @@ def test_konsole() -> None:
 
         konsole.config(use_color=False)
         konsole.critical("big %s!", "bad")
-        konsole.debug("yo!")  # should not output.
+        konsole.debug("yo!")  # no output.
 
+        konsole.config(level=konsole.DEBUG)
         local_logger.warning("beware!", detail=665)
+        konsole.debug("detail", detail={})
 
     # Validate konsole output.
     actual, expected = prepare(buffer.getvalue())
@@ -61,6 +63,7 @@ def prepare(output: str) -> tuple[list[str], list[str]]:
         '[CRITICAL] big bad!', s.newline,
         '[WARNING] beware!', s.newline,
         '    665', s.newline,
+        '[DEBUG] detail.', s.newline,
     ]).split("\n")
     # fmt: on
 
@@ -76,10 +79,10 @@ def compare(actual: list[str], expected: list[str]) -> None:
 
     for actual_line, expected_line in zip(actual, expected):
         if actual_line == expected_line:
-            print("      " + actual_line)
+            print("  " + actual_line)
         else:
-            print(red("    - " + actual_line))
-            print(green("    + " + expected_line))
+            print(red("- " + actual_line))
+            print(green("+ " + expected_line))
 
 
 # Helper class to keep expected output readable by independently applying styles.
