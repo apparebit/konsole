@@ -3,6 +3,9 @@
 > When you are writing a Python command line tool and your head is on fire
 > because of overly rich frameworks that just don’t click.
 
+![An interactive Python session using
+konsole](https://raw.githubusercontent.com/apparebit/konsole/boss/session.png)
+
 [konsole](https://github.com/apparebit/konsole) is a simple logger built on top
 of Python's `logging` framework that prints to standard error and, if the
 underlying terminal is amenable to it, does so with the judicious use of bold
