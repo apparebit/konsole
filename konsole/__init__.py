@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     # Configuration
@@ -113,18 +113,17 @@ class KonsoleFormatter(logging.Formatter):
         if detail is _NoSuchValue:
             return ""
 
-        lines: list[str] = []
+        lines: list[str]
         if isinstance(detail, dict):
-            width = max(len(key) for key in detail)
-            for key, value in detail.items():
-                lines.append(f"\n    {key:>{width}} = {value}")
-        elif isinstance(detail, (tuple, list)):
-            for item in detail:
-                lines.append(f"\n    {item}")
+            width = max((len(key) for key in detail), default=0)
+            lines = [f"\n    {key:>{width}} = {value}" for key, value in detail.items()]
+        elif isinstance(detail, (list, tuple, set, frozenset)):
+            lines = [f"\n    {item}" for item in detail]
         else:
-            lines.append(f"\n    {detail}")
+            lines = [f"\n    {detail}"]
 
-        return self.applyStyle(self.DETAIL, "".join(lines))
+        text = "".join(lines)
+        return self.applyStyle(self.DETAIL, text) if text else ""
 
     def formatMessage(self, record: logging.LogRecord) -> str:
         levelname = self.applyStyle(record.levelname, f"[{record.levelname}]")
@@ -146,7 +145,7 @@ class KonsoleFormatter(logging.Formatter):
     def formatException(self, exc_info: Any) -> str:
         text = super().formatException(exc_info)
         text = "\n    ".join(text.split("\n"))
-        return self.applyStyle(self.EXCEPTION, text)
+        return self.applyStyle(self.EXCEPTION, f"    {text}")
 
 
 # --------------------------------------------------------------------------------------
