@@ -1,5 +1,12 @@
 # konsole changelog
 
+### v 0.4.0 (3 Feb 2022):
+
+  * Fix unexpected exception upon detail being an empty dictionary.
+  * More generally, improve handling of detail values that are effectively empty.
+  * Fix indentation of first line of exception trace.
+  * Add screenshot illustrating konsole's output to [project readme](README.md)
+
 ### v0.3.0 (29 Jan 2022):
 
   * Initialize konsole eagerly on first import. Replace `init()` with `config()`.
