@@ -35,10 +35,10 @@ that prints messages to standard error with the root logger, replaces the
 current logger class with a subclass that supports the `detail` keyword
 argument, and enables the capture of Python warnings through the logging system.
 
-konsole's public API follows below. It includes one function each for updating
-configuration settings, for accessing the `__main__` application logger, and for
-redirecting the output. Another six functions print messages at different
-levels. The API is type-checked with
+konsole's public API follows below. It consists of one function to update the
+configuration, one function to access the `__main__` application logger, and six
+functions to print messages at different priority levels. konsole includes type
+annotations, which have been validated with
 [mypy](https://mypy.readthedocs.io/en/stable/).
 
 
@@ -94,22 +94,6 @@ levels. The API is type-checked with
     konsole defines ALL CAPS constants, e.g., `WARNING`, for the five levels
     above. They have the same values as the corresponding constants in Python's
     logging package.
-
-
-### Redirecting Output
-
-In theory, the `redirect_stderr` function in Python's `contextlib` would suffice
-for redirecting the output of any Python class or module that writes to standard
-error. In practice, that function is next to useless, since it naively assumes
-that the class or module in question accesses standard error as `sys.stderr` on
-each and every use. Hence:
-
-  * Redirect konsole's output to the given stream. Unlike `redirect_stderr`,
-    this function works.
-
-    ```python
-    def redirect(stream: TextIO) -> ContextManager[TextIO]: ...
-    ```
 
 
 ---
