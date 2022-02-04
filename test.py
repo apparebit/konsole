@@ -1,3 +1,4 @@
+from contextlib import redirect_stderr
 from io import StringIO
 import logging
 import re
@@ -29,7 +30,7 @@ def test_konsole() -> None:
     assert isinstance(local_logger, konsole.KonsoleLogger)
 
     buffer = StringIO()
-    with konsole.redirect(buffer):
+    with redirect_stderr(buffer):
         konsole.config(use_color=True)
         konsole.info("fyi")
         konsole.error("bad!", detail="broken!")

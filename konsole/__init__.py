@@ -13,11 +13,7 @@ console output to it.
 import logging
 import sys
 
-from typing import Any, cast, ContextManager, Optional, TextIO, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from collections.abc import Iterator
-
+from typing import Any, cast, Optional, TextIO, TYPE_CHECKING
 
 __version__ = "0.4.0"
 
@@ -148,6 +144,18 @@ class KonsoleFormatter(logging.Formatter):
         return self.applyStyle(self.EXCEPTION, f"    {text}")
 
 
+class KonsoleHandler(logging.StreamHandler):
+    # Always dereference sys.stderr so that konsole's output is redirectable.
+
+    @property  # type: ignore
+    def stream(self) -> TextIO:  # type: ignore
+        return sys.stderr
+
+    @stream.setter
+    def stream(self, stream: TextIO) -> None:
+        pass
+
+
 # --------------------------------------------------------------------------------------
 
 
@@ -210,7 +218,7 @@ def _prepare_detail(kwargs: dict[str, object]) -> None:
 # the configuration of Python's logging module.
 
 _formatter = KonsoleFormatter()
-_handler = logging.StreamHandler()
+_handler = KonsoleHandler()
 _handler.setFormatter(_formatter)
 logging.setLoggerClass(KonsoleLogger)
 _main_logger = cast(KonsoleLogger, logging.getLogger("__main__"))
@@ -264,28 +272,3 @@ def debug(msg: object, *args: object, **kwargs: Any) -> None:
 def log(level: int, msg: object, *args: object, **kwargs: Any) -> None:
     """Log the given message at the given level."""
     _main_logger.log(level, msg, *args, **kwargs)
-
-
-# --------------------------------------------------------------------------------------
-
-
-def redirect(stream: TextIO) -> ContextManager[TextIO]:
-    """
-    Redirect konsole's output to the given stream. This function provides a
-    working alternative to `redirect_stderr` from Python's `contextlib`, which
-    does not work for capturing the output of a `StreamHandler`. The context
-    manager's `__enter__()` method returns the given stream, thus making it
-    available in the `with` statement body as well.
-    """
-    import contextlib
-
-    @contextlib.contextmanager
-    def redirect() -> 'Iterator[TextIO]':
-        old_stream = _handler.stream
-        _handler.setStream(stream)
-        try:
-            yield stream
-        finally:
-            _handler.setStream(old_stream)
-
-    return redirect()

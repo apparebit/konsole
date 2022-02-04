@@ -1,6 +1,12 @@
 # konsole changelog
 
-### v 0.4.0 (3 Feb 2022):
+### v0.5.0 (x Feb 2022):
+
+  * Use custom logging handler to make output redirectable with `contextlib`'s
+    `redirect_stderr`.
+  * Remove now superfluous `konsole.redirect()`.
+
+### v0.4.0 (3 Feb 2022):
 
   * Fix unexpected exception upon detail being an empty dictionary.
   * More generally, improve handling of detail values that are effectively empty.
