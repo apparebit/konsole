@@ -15,7 +15,7 @@ import sys
 
 from typing import Any, cast, Optional, TextIO, TYPE_CHECKING
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 
 __all__ = [
     'config', 'logger',
