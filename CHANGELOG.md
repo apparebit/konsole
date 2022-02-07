@@ -1,5 +1,9 @@
 # konsole changelog
 
+### v0.5.1 (7 Feb 2022):
+
+  * Fix `__all__` to list only symbols that actually exist.
+
 ### v0.5.0 (7 Feb 2022):
 
   * Use custom logging handler to make output redirectable with `contextlib`'s

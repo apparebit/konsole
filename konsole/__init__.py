@@ -18,23 +18,9 @@ from typing import Any, cast, Optional, TextIO, TYPE_CHECKING
 __version__ = "0.5.0"
 
 __all__ = [
-    # Configuration
-    'init',
-    'set_color',
-    'set_level',
-    'logger',
-    # Logging
-    'CRITICAL',
-    'ERROR',
-    'WARNING',
-    'INFO',
-    'DEBUG',
-    'critical',
-    'error',
-    'warning',
-    'info',
-    'debug',
-    'log',
+    'config', 'logger',
+    'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG',
+    'critical', 'error', 'warning', 'info', 'debug', 'log',
 ]
 
 
