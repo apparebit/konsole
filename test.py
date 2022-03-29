@@ -41,6 +41,7 @@ def test_konsole() -> None:
 
         konsole.config(level=konsole.DEBUG)
         local_logger.warning("beware!", detail=665)
+        konsole.info("look", detail="one\ntwo")
         konsole.debug("detail", detail={})
 
     # Validate konsole output.
@@ -64,6 +65,9 @@ def prepare(output: str) -> tuple[list[str], list[str]]:
         '[CRITICAL] big bad!', s.newline,
         '[WARNING] beware!', s.newline,
         '    665', s.newline,
+        '[INFO] look:', s.newline,
+        '    one', s.newline,
+        '    two', s.newline,
         '[DEBUG] detail.', s.newline,
     ]).split("\n")
     # fmt: on

@@ -1,5 +1,10 @@
 # konsole changelog
 
+### v0.6.0 (29 Mar 2022):
+
+  * After converting arbitrary detail values to strings, also split them into
+    lines.
+
 ### v0.5.1 (7 Feb 2022):
 
   * Fix `__all__` to list only symbols that actually exist.

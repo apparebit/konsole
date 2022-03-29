@@ -102,7 +102,7 @@ class KonsoleFormatter(logging.Formatter):
         elif isinstance(detail, (list, tuple, set, frozenset)):
             lines = [f"\n    {item}" for item in detail]
         else:
-            lines = [f"\n    {detail}"]
+            lines = [f"\n    {line}" for line in str(detail).split("\n")]
 
         text = "".join(lines)
         return self.applyStyle(self.DETAIL, text) if text else ""
