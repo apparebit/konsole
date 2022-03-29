@@ -9,6 +9,7 @@ its own, no experience or direct interaction with `logging` required. At the
 same time, this package plays equally well with other loggers, just leave
 console output to it.
 """
+from __future__ import annotations
 
 import logging
 import sys

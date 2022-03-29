@@ -4,6 +4,8 @@
 
   * After converting arbitrary detail values to strings, also split them into
     lines.
+  * Ensure that type annotations are treated as strings, so that generic types
+    do not trip up konsole in Python 3.7 or 3.8.
 
 ### v0.5.1 (7 Feb 2022):
 
