@@ -44,7 +44,7 @@ annotations, which have been validated with
 
 ### Configuring konsole
 
-  * Change the minimum level for printing message and/or the flag for forcing
+  * Change the minimum level for printing messages and/or the flag for forcing
     colors on/off.
 
     ```python
@@ -52,11 +52,14 @@ annotations, which have been validated with
         *,
         level: Optional[int] = None,
         use_color: Optional[bool] = None,
+        volume: Optional[int] = None,
     ) -> None: ...
     ```
 
     konsole starts out with `INFO` as minimum level and uses color if
-    standard error is a TTY.
+    standard error is a TTY. The `volume` argument provides an alternative
+    means for setting the output level, with larger volumes printing more
+    information and 0 corresponding to the `W
 
 
 ### Logging Messages

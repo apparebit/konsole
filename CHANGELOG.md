@@ -1,5 +1,10 @@
 # konsole changelog
 
+### v0.7.0 (15 Jun 2022):
+
+  * Add support for `volume` argument to `config()` as convenient alternative to
+    `level` argument for command line tools.
+
 ### v0.6.0 (29 Mar 2022):
 
   * After converting arbitrary detail values to strings, also split them into

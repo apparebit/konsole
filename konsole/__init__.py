@@ -39,6 +39,14 @@ WARNING = logging.WARNING
 INFO = logging.INFO
 DEBUG = logging.DEBUG
 
+VOLUME_TO_LEVEL = {
+    -2: CRITICAL,
+    -1: ERROR,
+    0: WARNING,
+    1: INFO,
+    2: DEBUG,
+}
+
 
 # --------------------------------------------------------------------------------------
 
@@ -215,8 +223,21 @@ logging.getLogger().addHandler(_handler)
 logging.getLogger().setLevel(INFO)
 
 
-def config(*, level: Optional[int] = None, use_color: Optional[bool] = None) -> None:
-    """Optionally set the logging level and forcibly enable or disable color."""
+def config(
+    *,
+    level: Optional[int] = None,
+    use_color: Optional[bool] = None,
+    volume: Optional[int] = None,
+) -> None:
+    """
+    Optionally set the logging level and forcibly enable or disable color.
+
+    The volume argument provides a convenient alternative way of specifying the
+    level — with larger volumes increasing the amount of information logged and
+    zero corresponding to `WARNING`. If specified, the volume takes priority.
+    """
+    if isinstance(volume, int):
+        level = VOLUME_TO_LEVEL[max(-2, min(volume, 2))]
     if level is not None:
         logging.getLogger().setLevel(level)
     if use_color is not None:

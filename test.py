@@ -50,6 +50,16 @@ def test_konsole() -> None:
     compare(actual, expected)
     assert actual == expected
 
+    # Levels and volumes. NB: Current level is DEBUG.
+    konsole.config(level=konsole.ERROR)
+    assert logging.getLogger().level == konsole.ERROR
+    konsole.config(level=konsole.ERROR, volume=2)
+    assert logging.getLogger().level == konsole.DEBUG
+    konsole.config(volume=-665)
+    assert logging.getLogger().level == konsole.CRITICAL
+    konsole.config(volume=665)
+    assert logging.getLogger().level == konsole.DEBUG
+
 
 ESC_SEQ = re.compile(r"\x1b\[(?P<code>\d+(?:;\d+)*)m")
 
