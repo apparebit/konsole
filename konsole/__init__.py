@@ -16,7 +16,7 @@ import sys
 
 from typing import Any, cast, Optional, TextIO, TYPE_CHECKING
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 __all__ = [
     'config', 'logger',
