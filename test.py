@@ -3,11 +3,25 @@ from contextlib import redirect_stderr
 from io import StringIO
 import logging
 import re
+import sys
+import traceback
+from typing import Callable
 
 # konsole does not use a test runner such as pytest for two reasons: First,
 # bringing in a major dependency for relatively little testing code seems
 # overkill. Second, pytest in particular captures all console output itself and
 # thus interferes with konsole's redirection of standard error.
+
+
+if sys.stdout.isatty():
+    def sgr(on: str, off: str) -> Callable[[str], str]:
+        return lambda s: f"\x1b[{on}m{s}\x1b[{off}m"
+else:
+    def sgr(on: str, off: str) -> Callable[[str], str]:
+        return lambda s: s
+
+RED = sgr("31;1", "39;0")
+GREEN = sgr("32;1", "39;0")
 
 
 def test_konsole() -> None:
@@ -68,69 +82,44 @@ def prepare(output: str) -> tuple[list[str], list[str]]:
     actual = re.sub(ESC_SEQ, "⊲\g<code>⊳", output).split("\n")
 
     # fmt: off
-    s = Style("⊲", "⊳")
-    expected = "".join([
-        s.info("[INFO]"), s.space, s.message("fyi."), s.newline,
-        s.error("[ERROR]"), s.space, s.message("bad!"),
-        s.detail("\n    broken!"), s.newline,
-        '[CRITICAL] big bad!', s.newline,
-        '[WARNING] beware!', s.newline,
-        '    665', s.newline,
-        '[INFO] look:', s.newline,
-        '    one', s.newline,
-        '    two', s.newline,
-        '[DEBUG] detail.', s.newline,
-    ]).split("\n")
+    space = " "
+    newline = "\n"
+    def sgr(on: str, s: str, off: str) -> str:
+        return f"\x1b[{on}m{s}\x1b[{off}m"
+
+    expected = re.sub(ESC_SEQ, "⊲\g<code>⊳", "".join([
+        sgr("1", "[INFO]", "0"), space, sgr("1", "fyi.", "0"), newline,
+        sgr("1;31", "[ERROR]", "0;39"), space, sgr("1", "bad!", "0"),
+        sgr("90", "\n    broken!", "0"), newline,
+        '[CRITICAL] big bad!', newline,
+        '[WARNING] beware!', newline,
+        '    665', newline,
+        '[INFO] look:', newline,
+        '    one', newline,
+        '    two', newline,
+        '[DEBUG] detail.', newline,
+    ])).split("\n")
     # fmt: on
 
     return actual, expected
 
 
 def compare(actual: list[str], expected: list[str]) -> None:
-    # SGR is NOT part of konsole's public API!
-    import konsole
-
-    red = konsole.SGR("31", "39")
-    green = konsole.SGR("32", "39")
-
     for actual_line, expected_line in zip(actual, expected):
         if actual_line == expected_line:
             print("  " + actual_line)
         else:
-            print(red("- " + actual_line))
-            print(green("+ " + expected_line))
-
-
-# Helper class to keep expected output readable by independently applying styles.
-class Style:
-    newline = "\n"
-    space = " "
-
-    def __init__(self, pre: str = "\x1b[", post: str = "m") -> None:
-        self.pre = pre
-        self.post = post
-
-    def critical(self, _s_: str) -> str:
-        return f"{self.pre}1;35{self.post}{_s_}{self.pre}0;39{self.post}"
-
-    def detail(self, _s_: str) -> str:
-        return f"{self.pre}90{self.post}{_s_}{self.pre}0{self.post}"
-
-    def error(self, _s_: str) -> str:
-        return f"{self.pre}1;31{self.post}{_s_}{self.pre}0;39{self.post}"
-
-    def exception(self, _s_: str) -> str:
-        return f"{self.pre}90{self.post}{_s_}{self.pre}0{self.post}"
-
-    def info(self, _s_: str) -> str:
-        return f"{self.pre}1{self.post}{_s_}{self.pre}0{self.post}"
-
-    def message(self, _s_: str) -> str:
-        return f"{self.pre}1{self.post}{_s_}{self.pre}0{self.post}"
-
-    def warning(self, _s_: str) -> str:
-        return f"{self.pre}1;38;5;208{self.post}{_s_}{self.pre}0;39{self.post}"
+            print(RED("- " + actual_line))
+            print(GREEN("+ " + expected_line))
 
 
 if __name__ == "__main__":
-    test_konsole()
+    try:
+        test_konsole()
+    except AssertionError as x:
+        print(RED(str(x)))
+    except Exception as x:
+        print(RED(str(x)))
+        print('\n'.join(traceback.format_exc()))
+    else:
+        print(GREEN("Happy, happy, joy, joy!"))
