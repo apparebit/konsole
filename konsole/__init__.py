@@ -4,54 +4,51 @@ konsole: readable, pleasing console output
 [konsole](https://github.com/apparebit/konsole) is a simple logger built on top
 of Python's `logging` framework that prints to standard error and, if the
 underlying terminal is amenable to it, does so with the judicious use of bold
-and light type as well as a dash of color. This package's interface stands on
-its own, no experience or direct interaction with `logging` required. At the
-same time, this package plays equally well with other loggers, just leave
-console output to it.
+and light type as well as a dash of color. While Python's `logging` framework is
+pretty complex, this package's interface stands on its own, no experience or
+direct interaction with `logging` required. At the same time, this package plays
+equally well with other loggers, just leave console output to it.
 """
 from __future__ import annotations
 
-import logging
-import sys
-
-from typing import Any, cast, Optional, TextIO, TYPE_CHECKING
-
 __version__ = "0.7.0"
 
+# fmt: off
 __all__ = [
+    '__version__',
     'config', 'logger',
     'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG',
     'critical', 'error', 'warning', 'info', 'debug', 'log',
 ]
+# fmt: on
+
+import logging
+import sys
+
+from typing import Any, cast, Optional, TextIO, Tuple, Type, TYPE_CHECKING, Union
+
+if TYPE_CHECKING:
+    import types
+
+    ExceptionInfo = Union[
+        Tuple[Type[BaseException], BaseException, Optional[types.TracebackType]],
+        Tuple[None, None, None],
+    ]
+
+
+# --------------------------------------------------------------------------------------
+# konsole's Formatter and Handler: Nicely Formatted Output
 
 
 class _NoSuchValueType:
     pass
 
 
-_NoSuchValue = _NoSuchValueType()
+_NO_SUCH_VALUE = _NoSuchValueType()
 del _NoSuchValueType
 
 
-CRITICAL = logging.CRITICAL
-ERROR = logging.ERROR
-WARNING = logging.WARNING
-INFO = logging.INFO
-DEBUG = logging.DEBUG
-
-VOLUME_TO_LEVEL = {
-    -2: CRITICAL,
-    -1: ERROR,
-    0: WARNING,
-    1: INFO,
-    2: DEBUG,
-}
-
-
-# --------------------------------------------------------------------------------------
-
-
-class SGR:
+class _SGR:
     """
     The Select Graphic Rendition (SGR) for enabling and disabling a style but
     without the prefix of escape character and opening square bracket '[' as
@@ -81,14 +78,14 @@ class KonsoleFormatter(logging.Formatter):
 
     STYLE = {
         # Styles for level labels:
-        "CRITICAL": SGR("1;35", "0;39"),
-        "ERROR": SGR("1;31", "0;39"),
-        "WARNING": SGR("1;38;5;208", "0;39"),
-        "INFO": SGR("1", "0"),
+        "CRITICAL": _SGR("1;35", "0;39"),
+        "ERROR": _SGR("1;31", "0;39"),
+        "WARNING": _SGR("1;38;5;208", "0;39"),
+        "INFO": _SGR("1", "0"),
         # Styles for other components of log entries:
-        MESSAGE: SGR("1", "0"),
-        DETAIL: SGR("90", "0"),
-        EXCEPTION: SGR("90", "0"),
+        MESSAGE: _SGR("1", "0"),
+        DETAIL: _SGR("90", "0"),
+        EXCEPTION: _SGR("90", "0"),
     }
 
     def __init__(self, use_color: Optional[bool] = None) -> None:
@@ -100,14 +97,14 @@ class KonsoleFormatter(logging.Formatter):
         return style(text) if style and self.use_color else text
 
     def formatDetail(self, record: logging.LogRecord) -> str:
-        detail = getattr(record, "detail", _NoSuchValue)
-        if detail is _NoSuchValue:
+        detail: object = getattr(record, "detail", _NO_SUCH_VALUE)
+        if detail is _NO_SUCH_VALUE:
             return ""
 
         lines: list[str]
         if isinstance(detail, dict):
             width = max((len(key) for key in detail), default=0)
-            lines = [f"\n    {key:>{width}} = {value}" for key, value in detail.items()]
+            lines = [f"\n    {key:>{width}} : {value}" for key, value in detail.items()]
         elif isinstance(detail, (list, tuple, set, frozenset)):
             lines = [f"\n    {item}" for item in detail]
         else:
@@ -133,7 +130,7 @@ class KonsoleFormatter(logging.Formatter):
 
         return f"{levelname} {message}{detail}"
 
-    def formatException(self, exc_info: Any) -> str:
+    def formatException(self, exc_info: ExceptionInfo) -> str:
         text = super().formatException(exc_info)
         text = "\n    ".join(text.split("\n"))
         return self.applyStyle(self.EXCEPTION, f"    {text}")
@@ -152,6 +149,14 @@ class KonsoleHandler(logging.StreamHandler):
 
 
 # --------------------------------------------------------------------------------------
+# konsole's Logger: Enabling `detail`
+
+
+CRITICAL = logging.CRITICAL
+ERROR = logging.ERROR
+WARNING = logging.WARNING
+INFO = logging.INFO
+DEBUG = logging.DEBUG
 
 
 # Instead of subclassing logging.Logger directly, we create the konsole logger
@@ -207,6 +212,7 @@ def _prepare_detail(kwargs: dict[str, object]) -> None:
 
 
 # --------------------------------------------------------------------------------------
+# Initialization and Configuration
 
 
 # Initialize konsole when this module is first imported by selectively changing
@@ -223,6 +229,15 @@ logging.getLogger().addHandler(_handler)
 logging.getLogger().setLevel(INFO)
 
 
+_VOLUME_TO_LEVEL = {
+    -2: CRITICAL,
+    -1: ERROR,
+    0: WARNING,
+    1: INFO,
+    2: DEBUG,
+}
+
+
 def config(
     *,
     level: Optional[int] = None,
@@ -237,7 +252,7 @@ def config(
     zero corresponding to `WARNING`. If specified, the volume takes priority.
     """
     if isinstance(volume, int):
-        level = VOLUME_TO_LEVEL[max(-2, min(volume, 2))]
+        level = _VOLUME_TO_LEVEL[max(-2, min(volume, 2))]
     if level is not None:
         logging.getLogger().setLevel(level)
     if use_color is not None:
@@ -245,6 +260,7 @@ def config(
 
 
 # --------------------------------------------------------------------------------------
+# logger() vs Module-Level Functions
 
 
 def logger() -> logging.Logger:
@@ -257,26 +273,26 @@ def critical(msg: object, *args: object, **kwargs: object) -> None:
     _main_logger.log(CRITICAL, msg, *args, **kwargs)
 
 
-def error(msg: object, *args: object, **kwargs: Any) -> None:
+def error(msg: object, *args: object, **kwargs: object) -> None:
     """Log the given error message."""
     _main_logger.log(ERROR, msg, *args, **kwargs)
 
 
-def warning(msg: object, *args: object, **kwargs: Any) -> None:
+def warning(msg: object, *args: object, **kwargs: object) -> None:
     """Log the given warning message."""
     _main_logger.log(WARNING, msg, *args, **kwargs)
 
 
-def info(msg: object, *args: object, **kwargs: Any) -> None:
-    """Log the given message."""
+def info(msg: object, *args: object, **kwargs: object) -> None:
+    """Log the given informational message."""
     _main_logger.log(INFO, msg, *args, **kwargs)
 
 
-def debug(msg: object, *args: object, **kwargs: Any) -> None:
+def debug(msg: object, *args: object, **kwargs: object) -> None:
     """Log the given debug message."""
     _main_logger.log(DEBUG, msg, *args, **kwargs)
 
 
-def log(level: int, msg: object, *args: object, **kwargs: Any) -> None:
+def log(level: int, msg: object, *args: object, **kwargs: object) -> None:
     """Log the given message at the given level."""
     _main_logger.log(level, msg, *args, **kwargs)
